@@ -11,148 +11,142 @@ struct GameView: View {
     @ObservedObject var gameState: GameState
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 8) {
-                // Ratio and Line Display
-                VStack(spacing: 4) {
-                    Text(gameState.currentRatioLabel())
-                        .font(.title2)
-                        .fontWeight(.bold)
+        VStack(spacing: 6) {
+            // Ratio and optional line display
+            VStack(spacing: 2) {
+                Text(gameState.currentRatioLabel())
+                    .font(.title3)
+                    .fontWeight(.bold)
 
+                if !gameState.currentLineDisplay().isEmpty {
                     Text(gameState.currentLineDisplay())
-                        .font(.caption2)
+                        .font(.system(size: 9))
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 4)
+            }
 
-                Divider()
+            Divider()
 
-                // Team A Score Section
-                VStack(spacing: 8) {
+            // Team A Score Section
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Text(gameState.teamAName)
-                            .font(.headline)
+                            .font(.caption)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
-
-                        Spacer()
-
                         if gameState.pullingTeam == "a" {
-                            Text("Pulling")
-                                .font(.caption2)
+                            Text("P")
+                                .font(.system(size: 8))
                                 .foregroundColor(.orange)
                         } else {
-                            Text("Receiving")
-                                .font(.caption2)
+                            Text("R")
+                                .font(.system(size: 8))
                                 .foregroundColor(.green)
                         }
                     }
 
-                    HStack {
-                        Text("\(gameState.scoreA)")
-                            .font(.system(size: 40, weight: .bold))
-                            .frame(maxWidth: .infinity)
-
-                        Button(action: {
-                            gameState.score(team: "a")
-                        }) {
-                            Text("+1")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .frame(width: 50, height: 50)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.blue)
-                    }
+                    Text("\(gameState.scoreA)")
+                        .font(.system(size: 36, weight: .bold))
 
                     Text("Breaks: \(gameState.breaksA)")
-                        .font(.caption)
+                        .font(.system(size: 9))
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 4)
 
-                Divider()
+                Spacer()
 
-                // Team B Score Section
-                VStack(spacing: 8) {
+                Button(action: {
+                    gameState.score(team: "a")
+                }) {
+                    Text("+1")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .frame(width: 45, height: 45)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+            }
+
+            Divider()
+
+            // Team B Score Section
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
                     HStack {
                         Text(gameState.teamBName)
-                            .font(.headline)
+                            .font(.caption)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
-
-                        Spacer()
-
                         if gameState.pullingTeam == "b" {
-                            Text("Pulling")
-                                .font(.caption2)
+                            Text("P")
+                                .font(.system(size: 8))
                                 .foregroundColor(.orange)
                         } else {
-                            Text("Receiving")
-                                .font(.caption2)
+                            Text("R")
+                                .font(.system(size: 8))
                                 .foregroundColor(.green)
                         }
                     }
 
-                    HStack {
-                        Text("\(gameState.scoreB)")
-                            .font(.system(size: 40, weight: .bold))
-                            .frame(maxWidth: .infinity)
-
-                        Button(action: {
-                            gameState.score(team: "b")
-                        }) {
-                            Text("+1")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .frame(width: 50, height: 50)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.red)
-                    }
+                    Text("\(gameState.scoreB)")
+                        .font(.system(size: 36, weight: .bold))
 
                     Text("Breaks: \(gameState.breaksB)")
-                        .font(.caption)
+                        .font(.system(size: 9))
                         .foregroundColor(.secondary)
                 }
-                .padding(.vertical, 4)
 
-                Divider()
+                Spacer()
 
-                // Game Info
-                HStack {
-                    Text("Point \(gameState.totalPoints + 1)")
-                        .font(.caption)
-                    Spacer()
-                    Text("Game to \(gameState.targetPoints)")
-                        .font(.caption)
+                Button(action: {
+                    gameState.score(team: "b")
+                }) {
+                    Text("+1")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                        .frame(width: 45, height: 45)
                 }
-                .foregroundColor(.secondary)
-
-                // Action Buttons
-                HStack(spacing: 12) {
-                    Button(action: {
-                        gameState.undo()
-                    }) {
-                        Image(systemName: "arrow.uturn.backward")
-                            .font(.title3)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(!gameState.canUndo())
-
-                    Button(action: {
-                        gameState.resetGame()
-                    }) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.title3)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.orange)
-                }
-                .padding(.top, 4)
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
             }
-            .padding()
+
+            Divider()
+
+            // Game Info and Controls
+            HStack {
+                Text("Pt \(gameState.totalPoints + 1)")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                Text("to \(gameState.targetPoints)")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                Button(action: {
+                    gameState.undo()
+                }) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!gameState.canUndo())
+
+                Button(action: {
+                    gameState.resetGame()
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .tint(.orange)
+            }
         }
+        .padding()
         .alert("Halftime", isPresented: $gameState.showHalftimeModal) {
             Button("Continue") {
                 gameState.continueFromHalftime()

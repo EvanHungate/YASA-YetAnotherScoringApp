@@ -30,8 +30,8 @@ struct RatioNeeds {
 
 class GameState: ObservableObject {
     // Team configuration
-    @Published var teamAName: String = "Team A"
-    @Published var teamBName: String = "Team B"
+    @Published var teamAName: String = "Team"
+    @Published var teamBName: String = "Opposition"
 
     // Scores and breaks
     @Published var scoreA: Int = 0
@@ -49,6 +49,7 @@ class GameState: ObservableObject {
     @Published var rotationStart: String = "O"  // "O" or "F"
 
     // Line rolling
+    @Published var useLineRolling: Bool = false
     @Published var openCount: Int = 7
     @Published var fmpCount: Int = 7
     @Published var openCursor: Int = 0
@@ -169,7 +170,7 @@ class GameState: ObservableObject {
 
     /// Advances the line cursors based on players used
     func advanceLines() {
-        guard rotationIndex < rotationCycle.count else { return }
+        guard useLineRolling && rotationIndex < rotationCycle.count else { return }
         let label = rotationCycle[rotationIndex]
         let needs = ratioNeeds(label: label)
 
@@ -179,7 +180,7 @@ class GameState: ObservableObject {
 
     /// Returns the current line display string
     func currentLineDisplay() -> String {
-        guard gameStarted && rotationIndex < rotationCycle.count else { return "" }
+        guard useLineRolling && gameStarted && rotationIndex < rotationCycle.count else { return "" }
 
         let label = rotationCycle[rotationIndex]
         let needs = ratioNeeds(label: label)
