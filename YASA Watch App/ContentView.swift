@@ -12,7 +12,17 @@ struct ContentView: View {
 
     var body: some View {
         if gameState.gameStarted {
-            GameView(gameState: gameState)
+            TabView {
+                GameView(gameState: gameState)
+                    .tabItem {
+                        Label("Game", systemImage: "sportscourt")
+                    }
+
+                ControlsView(gameState: gameState)
+                    .tabItem {
+                        Label("Controls", systemImage: "gearshape")
+                    }
+            }
         } else {
             SetupView(gameState: gameState)
         }

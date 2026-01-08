@@ -11,40 +11,13 @@ struct GameView: View {
     @ObservedObject var gameState: GameState
 
     var body: some View {
-        VStack(spacing: 4) {
-            // Ratio and optional line display at top
-            VStack(spacing: 2) {
-                HStack {
-                    Text("Pt \(gameState.totalPoints + 1)")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-
-                    Spacer()
-
-                    Text(gameState.currentRatioLabel())
-                        .font(.headline)
-                        .fontWeight(.bold)
-
-                    Spacer()
-
-                    Text("to \(gameState.targetPoints)")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
-
-                if !gameState.currentLineDisplay().isEmpty {
-                    Text(gameState.currentLineDisplay())
-                        .font(.system(size: 8))
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(.horizontal)
-
-            // Team A - Large Button
+        VStack(spacing: 8) {
+            // Team A - Large Button with all info
             Button(action: {
                 gameState.score(team: "a")
             }) {
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
+                    // Top row: Team name and status
                     HStack {
                         Text(gameState.teamAName)
                             .font(.caption)
@@ -66,21 +39,36 @@ struct GameView: View {
                         }
                     }
 
+                    // Score - large and centered
                     Text("\(gameState.scoreA)")
-                        .font(.system(size: 50, weight: .bold))
+                        .font(.system(size: 56, weight: .bold))
+
+                    // Bottom row: Ratio and line info
+                    VStack(spacing: 2) {
+                        Text(gameState.currentRatioLabel())
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        if !gameState.currentLineDisplay().isEmpty {
+                            Text(gameState.currentLineDisplay())
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
                 .background(Color.blue.opacity(0.2))
-                .cornerRadius(10)
+                .cornerRadius(12)
             }
             .buttonStyle(.plain)
 
-            // Team B - Large Button
+            // Team B - Large Button with all info
             Button(action: {
                 gameState.score(team: "b")
             }) {
-                VStack(spacing: 4) {
+                VStack(spacing: 6) {
+                    // Top row: Team name and status
                     HStack {
                         Text(gameState.teamBName)
                             .font(.caption)
@@ -102,45 +90,31 @@ struct GameView: View {
                         }
                     }
 
+                    // Score - large and centered
                     Text("\(gameState.scoreB)")
-                        .font(.system(size: 50, weight: .bold))
+                        .font(.system(size: 56, weight: .bold))
+
+                    // Bottom row: Ratio and line info
+                    VStack(spacing: 2) {
+                        Text(gameState.currentRatioLabel())
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        if !gameState.currentLineDisplay().isEmpty {
+                            Text(gameState.currentLineDisplay())
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
                 .background(Color.red.opacity(0.2))
-                .cornerRadius(10)
+                .cornerRadius(12)
             }
             .buttonStyle(.plain)
-
-            // Controls at bottom
-            HStack(spacing: 8) {
-                Button(action: {
-                    gameState.undo()
-                }) {
-                    Image(systemName: "arrow.uturn.backward")
-                        .font(.caption)
-                }
-                .buttonStyle(.bordered)
-                .disabled(!gameState.canUndo())
-
-                Spacer()
-
-                Button(action: {
-                    gameState.resetGame()
-                }) {
-                    HStack(spacing: 2) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.caption)
-                        Text("Reset")
-                            .font(.system(size: 10))
-                    }
-                }
-                .buttonStyle(.bordered)
-                .tint(.orange)
-            }
-            .padding(.horizontal)
         }
-        .padding(.vertical, 8)
+        .padding(.horizontal)
         .alert("Halftime", isPresented: $gameState.showHalftimeModal) {
             Button("Continue") {
                 gameState.continueFromHalftime()
