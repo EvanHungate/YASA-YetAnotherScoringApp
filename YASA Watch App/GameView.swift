@@ -11,12 +11,34 @@ struct GameView: View {
     @ObservedObject var gameState: GameState
 
     var body: some View {
-        VStack(spacing: 8) {
-            // Team A - Large Button with all info
+        VStack(spacing: 0) {
+            // Compact ratio info badge - top right corner
+            HStack {
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(gameState.currentRatioLabel())
+                        .font(.caption2)
+                        .fontWeight(.bold)
+
+                    if !gameState.currentLineDisplay().isEmpty {
+                        Text(gameState.currentLineDisplay())
+                            .font(.system(size: 7))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(6)
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(8)
+            }
+            .padding(.horizontal, 8)
+            .padding(.top, 4)
+
+            // Team A - Large Button
             Button(action: {
                 gameState.score(team: "a")
             }) {
-                VStack(spacing: 6) {
+                VStack(spacing: 2) {
                     // Top row: Team name and status
                     HStack {
                         Text(gameState.teamAName)
@@ -41,33 +63,23 @@ struct GameView: View {
 
                     // Score - large and centered
                     Text("\(gameState.scoreA)")
-                        .font(.system(size: 56, weight: .bold))
-
-                    // Bottom row: Ratio and line info
-                    VStack(spacing: 2) {
-                        Text(gameState.currentRatioLabel())
-                            .font(.caption)
-                            .fontWeight(.semibold)
-
-                        if !gameState.currentLineDisplay().isEmpty {
-                            Text(gameState.currentLineDisplay())
-                                .font(.system(size: 8))
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                        .font(.system(size: 48, weight: .bold))
                 }
-                .padding()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
                 .background(Color.blue.opacity(0.2))
-                .cornerRadius(12)
+                .cornerRadius(10)
             }
             .buttonStyle(.plain)
+            .padding(.horizontal, 8)
+            .padding(.top, 4)
 
-            // Team B - Large Button with all info
+            // Team B - Large Button
             Button(action: {
                 gameState.score(team: "b")
             }) {
-                VStack(spacing: 6) {
+                VStack(spacing: 2) {
                     // Top row: Team name and status
                     HStack {
                         Text(gameState.teamBName)
@@ -92,29 +104,21 @@ struct GameView: View {
 
                     // Score - large and centered
                     Text("\(gameState.scoreB)")
-                        .font(.system(size: 56, weight: .bold))
-
-                    // Bottom row: Ratio and line info
-                    VStack(spacing: 2) {
-                        Text(gameState.currentRatioLabel())
-                            .font(.caption)
-                            .fontWeight(.semibold)
-
-                        if !gameState.currentLineDisplay().isEmpty {
-                            Text(gameState.currentLineDisplay())
-                                .font(.system(size: 8))
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                        .font(.system(size: 48, weight: .bold))
                 }
-                .padding()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
                 .background(Color.red.opacity(0.2))
-                .cornerRadius(12)
+                .cornerRadius(10)
             }
             .buttonStyle(.plain)
+            .padding(.horizontal, 8)
+            .padding(.top, 4)
+            .padding(.bottom, 8)
+
+            Spacer()
         }
-        .padding(.horizontal)
         .alert("Halftime", isPresented: $gameState.showHalftimeModal) {
             Button("Continue") {
                 gameState.continueFromHalftime()
