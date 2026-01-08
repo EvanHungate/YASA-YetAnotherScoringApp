@@ -12,11 +12,9 @@ struct GameView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Compact ratio info badge - top right corner
+            // Compact ratio info badge - top left corner
             HStack {
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 1) {
+                VStack(alignment: .leading, spacing: 1) {
                     Text(gameState.currentRatioLabel())
                         .font(.caption2)
                         .fontWeight(.bold)
@@ -28,8 +26,10 @@ struct GameView: View {
                     }
                 }
                 .padding(6)
-                .background(Color.gray.opacity(0.2))
+                .background(Color.gray.opacity(0.3))
                 .cornerRadius(8)
+
+                Spacer()
             }
             .padding(.horizontal, 8)
             .padding(.top, 4)
@@ -68,7 +68,7 @@ struct GameView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
-                .background(Color.blue.opacity(0.2))
+                .background(Color.blue.opacity(0.35))
                 .cornerRadius(10)
             }
             .buttonStyle(.plain)
@@ -109,7 +109,7 @@ struct GameView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity)
-                .background(Color.red.opacity(0.2))
+                .background(Color.red.opacity(0.35))
                 .cornerRadius(10)
             }
             .buttonStyle(.plain)

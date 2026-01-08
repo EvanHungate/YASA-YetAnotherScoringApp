@@ -57,7 +57,7 @@ struct SetupView: View {
                 Text("Game to:")
                     .font(.caption2)
                 Stepper("\(gameState.targetPoints)", value: $gameState.targetPoints, in: 1...30)
-                    .font(.caption)
+                    .font(.caption2)
             }
 
             Divider()
