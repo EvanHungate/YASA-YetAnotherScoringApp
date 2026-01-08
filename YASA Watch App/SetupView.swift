@@ -25,10 +25,8 @@ struct SetupView: View {
                             .foregroundColor(.secondary)
 
                         TextField("Team A", text: $gameState.teamAName)
-                            .textFieldStyle(.roundedBorder)
 
                         TextField("Team B", text: $gameState.teamBName)
-                            .textFieldStyle(.roundedBorder)
                     }
 
                     Divider()
@@ -43,7 +41,6 @@ struct SetupView: View {
                             Text(gameState.teamAName).tag("a")
                             Text(gameState.teamBName).tag("b")
                         }
-                        .pickerStyle(.segmented)
                     }
 
                     Divider()
@@ -58,7 +55,6 @@ struct SetupView: View {
                             Text("Open").tag("O")
                             Text("FMP").tag("F")
                         }
-                        .pickerStyle(.segmented)
                     }
 
                     Divider()
