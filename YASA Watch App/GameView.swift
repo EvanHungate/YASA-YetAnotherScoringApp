@@ -24,6 +24,7 @@ struct GameView: View {
                             .fontWeight(.medium)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
+                            .foregroundColor(.white)
 
                         Spacer()
 
@@ -39,6 +40,7 @@ struct GameView: View {
                     // Score - large and centered
                     Text("\(gameState.scoreA)")
                         .font(.system(size: 44, weight: .bold))
+                        .foregroundColor(.white)
 
                     Spacer()
 
@@ -47,11 +49,12 @@ struct GameView: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(gameState.currentRatioLabel())
                                 .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.9))
 
                             if !gameState.currentLineDisplay().isEmpty {
                                 Text(gameState.currentLineDisplay())
                                     .font(.system(size: 7))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.white.opacity(0.6))
                                     .lineLimit(2)
                             }
                         }
@@ -60,13 +63,17 @@ struct GameView: View {
 
                         Text("B:\(gameState.breaksA)")
                             .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
                     }
                     .padding(.horizontal, 8)
                     .padding(.bottom, 8)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.blue.opacity(0.35))
-                .cornerRadius(10)
+                .background(Color.black)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.blue.opacity(0.6), lineWidth: 2)
+                )
             }
             .buttonStyle(.plain)
 
@@ -82,6 +89,7 @@ struct GameView: View {
                             .fontWeight(.medium)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
+                            .foregroundColor(.white)
 
                         Spacer()
 
@@ -97,6 +105,7 @@ struct GameView: View {
                     // Score - large and centered
                     Text("\(gameState.scoreB)")
                         .font(.system(size: 44, weight: .bold))
+                        .foregroundColor(.white)
 
                     Spacer()
 
@@ -105,11 +114,12 @@ struct GameView: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(gameState.currentRatioLabel())
                                 .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.9))
 
                             if !gameState.currentLineDisplay().isEmpty {
                                 Text(gameState.currentLineDisplay())
                                     .font(.system(size: 7))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.white.opacity(0.6))
                                     .lineLimit(2)
                             }
                         }
@@ -118,17 +128,22 @@ struct GameView: View {
 
                         Text("B:\(gameState.breaksB)")
                             .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
                     }
                     .padding(.horizontal, 8)
                     .padding(.bottom, 8)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.red.opacity(0.35))
-                .cornerRadius(10)
+                .background(Color.black)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.red.opacity(0.6), lineWidth: 2)
+                )
             }
             .buttonStyle(.plain)
         }
         .padding(4)
+        .background(Color.black)
         .alert("Halftime", isPresented: $gameState.showHalftimeModal) {
             Button("Continue") {
                 gameState.continueFromHalftime()

@@ -23,8 +23,10 @@ struct ContentView: View {
                         Label("Controls", systemImage: "gearshape")
                     }
             }
+            .preferredColorScheme(.dark)
         } else {
             SetupView(gameState: gameState)
+                .preferredColorScheme(.dark)
         }
     }
 }
