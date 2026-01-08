@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 // Represents a snapshot of the game state for undo functionality
 struct GameStateSnapshot {
