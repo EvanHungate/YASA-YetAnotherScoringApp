@@ -5,7 +5,7 @@
 //  Game state management for Ultimate Frisbee scorekeeper
 //
 
-import Foundation
+import SwiftUI
 
 // Represents a snapshot of the game state for undo functionality
 struct GameStateSnapshot {
