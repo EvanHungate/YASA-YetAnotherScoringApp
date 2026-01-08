@@ -12,88 +12,185 @@ struct SetupView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 8) {
-                Text("Setup")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-
-            // Team Names - compact
-            HStack {
-                TextField("Team", text: $gameState.teamAName)
-                    .font(.caption)
-                Text("vs")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                TextField("Opposition", text: $gameState.teamBName)
-                    .font(.caption)
-            }
-
-            Divider()
-
-            // First Pull - compact
-            HStack {
-                Text("First Pull:")
-                    .font(.caption2)
-                Picker("", selection: $gameState.initialPuller) {
-                    Text(gameState.teamAName).tag("a")
-                    Text(gameState.teamBName).tag("b")
+            VStack(alignment: .leading, spacing: 16) {
+                // Team Name
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Team Name")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    TextField("Team", text: $gameState.teamAName)
+                        .foregroundColor(.secondary)
                 }
-                .labelsHidden()
-            }
 
-            // Starting Ratio - compact
-            HStack {
-                Text("Start:")
-                    .font(.caption2)
-                Picker("", selection: $gameState.rotationStart) {
-                    Text("Open").tag("O")
-                    Text("FMP").tag("F")
+                // Opponent Name
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Opponent Name")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    TextField("Opponent", text: $gameState.teamBName)
+                        .foregroundColor(.secondary)
                 }
-                .labelsHidden()
-            }
 
-            // Target Points - compact
-            HStack {
-                Text("Game to:")
-                    .font(.caption2)
-                Stepper("\(gameState.targetPoints)", value: $gameState.targetPoints, in: 1...30)
-                    .font(.caption2)
-            }
+                // Pulling Team
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Pulling Team")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    Picker("", selection: $gameState.initialPuller) {
+                        Text(gameState.teamAName).tag("a")
+                        Text(gameState.teamBName).tag("b")
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
-            Divider()
+                // Start Ratio
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Start Ratio")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    Picker("", selection: $gameState.rotationStart) {
+                        Text("Open").tag("O")
+                        Text("FMP").tag("F")
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
-            // Line Rolling Toggle
-            Toggle("Line Rolling", isOn: $gameState.useLineRolling)
-                .font(.caption2)
+                // Game to Score
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Game to Score")
+                        .font(.caption)
+                        .fontWeight(.semibold)
 
-            // Show line counts only if line rolling is enabled
-            if gameState.useLineRolling {
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            if gameState.targetPoints > 1 {
+                                gameState.targetPoints -= 1
+                            }
+                        }) {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                        }
+                        .buttonStyle(.plain)
+
+                        Text("\(gameState.targetPoints)")
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                            .frame(minWidth: 30)
+
+                        Button(action: {
+                            if gameState.targetPoints < 30 {
+                                gameState.targetPoints += 1
+                            }
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.primary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                // Track Line Roll
                 HStack {
-                    Text("Open:")
-                        .font(.caption2)
-                    Stepper("\(gameState.openCount)", value: $gameState.openCount, in: 1...14)
-                        .font(.caption2)
+                    Text("Track Line Roll")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Toggle("", isOn: $gameState.useLineRolling)
+                        .labelsHidden()
                 }
 
-                HStack {
-                    Text("FMP:")
-                        .font(.caption2)
-                    Stepper("\(gameState.fmpCount)", value: $gameState.fmpCount, in: 1...14)
-                        .font(.caption2)
+                // Open Players (only show if line rolling is enabled)
+                if gameState.useLineRolling {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Open Players")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                if gameState.openCount > 1 {
+                                    gameState.openCount -= 1
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.primary)
+                            }
+                            .buttonStyle(.plain)
+
+                            Text("\(gameState.openCount)")
+                                .font(.body)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.blue)
+                                .frame(minWidth: 30)
+
+                            Button(action: {
+                                if gameState.openCount < 14 {
+                                    gameState.openCount += 1
+                                }
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    // FMP Players
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("FMP Players")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                if gameState.fmpCount > 1 {
+                                    gameState.fmpCount -= 1
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.primary)
+                            }
+                            .buttonStyle(.plain)
+
+                            Text("\(gameState.fmpCount)")
+                                .font(.body)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.blue)
+                                .frame(minWidth: 30)
+
+                            Button(action: {
+                                if gameState.fmpCount < 14 {
+                                    gameState.fmpCount += 1
+                                }
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
-            }
 
-            Divider()
-
-            // Start Button
-            Button(action: {
-                gameState.startGame()
-            }) {
-                Text("Start Game")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
+                // Start Button
+                Button(action: {
+                    gameState.startGame()
+                }) {
+                    Text("Start Game")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.top, 8)
             }
             .padding()
         }
