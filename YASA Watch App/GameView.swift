@@ -11,114 +11,124 @@ struct GameView: View {
     @ObservedObject var gameState: GameState
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Compact ratio info badge - top left corner
-            HStack {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(gameState.currentRatioLabel())
-                        .font(.caption2)
-                        .fontWeight(.bold)
-
-                    if !gameState.currentLineDisplay().isEmpty {
-                        Text(gameState.currentLineDisplay())
-                            .font(.system(size: 7))
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(6)
-                .background(Color.gray.opacity(0.3))
-                .cornerRadius(8)
-
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 4)
-
-            // Team A - Large Button
+        HStack(spacing: 4) {
+            // Team A - Left Button
             Button(action: {
                 gameState.score(team: "a")
             }) {
-                VStack(spacing: 2) {
-                    // Top row: Team name and status
+                VStack(spacing: 0) {
+                    // Top section: Team name and P/R badge
                     HStack {
                         Text(gameState.teamAName)
-                            .font(.caption)
+                            .font(.caption2)
+                            .fontWeight(.medium)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
 
                         Spacer()
 
-                        HStack(spacing: 4) {
-                            Text("B:\(gameState.breaksA)")
-                                .font(.system(size: 9))
-
-                            Text(gameState.pullingTeam == "a" ? "P" : "R")
-                                .font(.system(size: 9))
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 2)
-                                .background(gameState.pullingTeam == "a" ? Color.orange.opacity(0.3) : Color.green.opacity(0.3))
-                                .cornerRadius(4)
-                        }
+                        Text(gameState.pullingTeam == "a" ? "P" : "R")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(gameState.pullingTeam == "a" ? .orange : .green)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.top, 8)
+
+                    Spacer()
 
                     // Score - large and centered
                     Text("\(gameState.scoreA)")
-                        .font(.system(size: 48, weight: .bold))
+                        .font(.system(size: 44, weight: .bold))
+
+                    Spacer()
+
+                    // Bottom section: Ratio/Line info and breaks
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(gameState.currentRatioLabel())
+                                .font(.system(size: 9, weight: .semibold))
+
+                            if !gameState.currentLineDisplay().isEmpty {
+                                Text(gameState.currentLineDisplay())
+                                    .font(.system(size: 7))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(2)
+                            }
+                        }
+
+                        Spacer()
+
+                        Text("B:\(gameState.breaksA)")
+                            .font(.system(size: 9, weight: .semibold))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.blue.opacity(0.35))
                 .cornerRadius(10)
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 8)
-            .padding(.top, 4)
 
-            // Team B - Large Button
+            // Team B - Right Button
             Button(action: {
                 gameState.score(team: "b")
             }) {
-                VStack(spacing: 2) {
-                    // Top row: Team name and status
+                VStack(spacing: 0) {
+                    // Top section: Team name and P/R badge
                     HStack {
                         Text(gameState.teamBName)
-                            .font(.caption)
+                            .font(.caption2)
+                            .fontWeight(.medium)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
 
                         Spacer()
 
-                        HStack(spacing: 4) {
-                            Text("B:\(gameState.breaksB)")
-                                .font(.system(size: 9))
-
-                            Text(gameState.pullingTeam == "b" ? "P" : "R")
-                                .font(.system(size: 9))
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 2)
-                                .background(gameState.pullingTeam == "b" ? Color.orange.opacity(0.3) : Color.green.opacity(0.3))
-                                .cornerRadius(4)
-                        }
+                        Text(gameState.pullingTeam == "b" ? "P" : "R")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(gameState.pullingTeam == "b" ? .orange : .green)
                     }
+                    .padding(.horizontal, 8)
+                    .padding(.top, 8)
+
+                    Spacer()
 
                     // Score - large and centered
                     Text("\(gameState.scoreB)")
-                        .font(.system(size: 48, weight: .bold))
+                        .font(.system(size: 44, weight: .bold))
+
+                    Spacer()
+
+                    // Bottom section: Ratio/Line info and breaks
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(gameState.currentRatioLabel())
+                                .font(.system(size: 9, weight: .semibold))
+
+                            if !gameState.currentLineDisplay().isEmpty {
+                                Text(gameState.currentLineDisplay())
+                                    .font(.system(size: 7))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(2)
+                            }
+                        }
+
+                        Spacer()
+
+                        Text("B:\(gameState.breaksB)")
+                            .font(.system(size: 9, weight: .semibold))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.red.opacity(0.35))
                 .cornerRadius(10)
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 8)
-            .padding(.top, 4)
-            .padding(.bottom, 8)
-
-            Spacer()
         }
+        .padding(4)
         .alert("Halftime", isPresented: $gameState.showHalftimeModal) {
             Button("Continue") {
                 gameState.continueFromHalftime()
