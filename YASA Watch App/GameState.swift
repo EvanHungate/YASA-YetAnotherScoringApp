@@ -28,6 +28,30 @@ struct RatioNeeds {
     let f: Int  // FMP players needed
 }
 
+// Codable struct for saving/loading game state
+struct SavedGameState: Codable {
+    let teamAName: String
+    let teamBName: String
+    let scoreA: Int
+    let scoreB: Int
+    let breaksA: Int
+    let breaksB: Int
+    let pullingTeam: String
+    let initialPuller: String
+    let rotationCycle: [String]
+    let rotationIndex: Int
+    let rotationStart: String
+    let useLineRolling: Bool
+    let openCount: Int
+    let fmpCount: Int
+    let openCursor: Int
+    let fmpCursor: Int
+    let targetPoints: Int
+    let totalPoints: Int
+    let halftimeReached: Bool
+    let timestamp: Date
+}
+
 class GameState: ObservableObject {
     // Team configuration
     @Published var teamAName: String = "Team"
@@ -104,6 +128,9 @@ class GameState: ObservableObject {
         winningTeam = ""
 
         gameStarted = true
+
+        // Save initial game state
+        saveState()
     }
 
     // MARK: - Game Logic Functions
@@ -149,6 +176,11 @@ class GameState: ObservableObject {
         if currentScore >= targetPoints {
             winningTeam = team
             showWinnerModal = true
+            // Clear saved state when game ends
+            clearSavedState()
+        } else {
+            // Save state after each score (if game isn't over)
+            saveState()
         }
     }
 
@@ -162,9 +194,14 @@ class GameState: ObservableObject {
         if scoreA >= targetPoints {
             winningTeam = "a"
             showWinnerModal = true
+            clearSavedState()
         } else if scoreB >= targetPoints {
             winningTeam = "b"
             showWinnerModal = true
+            clearSavedState()
+        } else {
+            // Save state after halftime
+            saveState()
         }
     }
 
@@ -275,5 +312,101 @@ class GameState: ObservableObject {
         showHalftimeModal = false
         showWinnerModal = false
         winningTeam = ""
+
+        // Clear saved state
+        clearSavedState()
+    }
+
+    // MARK: - Persistence Functions
+
+    private static let savedGameKey = "savedGameState"
+
+    /// Saves the current game state to UserDefaults
+    func saveState() {
+        guard gameStarted else { return }
+
+        let savedState = SavedGameState(
+            teamAName: teamAName,
+            teamBName: teamBName,
+            scoreA: scoreA,
+            scoreB: scoreB,
+            breaksA: breaksA,
+            breaksB: breaksB,
+            pullingTeam: pullingTeam,
+            initialPuller: initialPuller,
+            rotationCycle: rotationCycle,
+            rotationIndex: rotationIndex,
+            rotationStart: rotationStart,
+            useLineRolling: useLineRolling,
+            openCount: openCount,
+            fmpCount: fmpCount,
+            openCursor: openCursor,
+            fmpCursor: fmpCursor,
+            targetPoints: targetPoints,
+            totalPoints: totalPoints,
+            halftimeReached: halftimeReached,
+            timestamp: Date()
+        )
+
+        if let encoded = try? JSONEncoder().encode(savedState) {
+            UserDefaults.standard.set(encoded, forKey: Self.savedGameKey)
+        }
+    }
+
+    /// Loads saved game state if available and not stale
+    /// Returns true if state was restored, false otherwise
+    func loadSavedState() -> Bool {
+        guard let data = UserDefaults.standard.data(forKey: Self.savedGameKey),
+              let savedState = try? JSONDecoder().decode(SavedGameState.self, from: data) else {
+            return false
+        }
+
+        // Check if saved state is stale (older than 24 hours)
+        let hoursSinceLastSave = Date().timeIntervalSince(savedState.timestamp) / 3600
+        if hoursSinceLastSave > 24 {
+            clearSavedState()
+            return false
+        }
+
+        // Restore state
+        teamAName = savedState.teamAName
+        teamBName = savedState.teamBName
+        scoreA = savedState.scoreA
+        scoreB = savedState.scoreB
+        breaksA = savedState.breaksA
+        breaksB = savedState.breaksB
+        pullingTeam = savedState.pullingTeam
+        initialPuller = savedState.initialPuller
+        rotationCycle = savedState.rotationCycle
+        rotationIndex = savedState.rotationIndex
+        rotationStart = savedState.rotationStart
+        useLineRolling = savedState.useLineRolling
+        openCount = savedState.openCount
+        fmpCount = savedState.fmpCount
+        openCursor = savedState.openCursor
+        fmpCursor = savedState.fmpCursor
+        targetPoints = savedState.targetPoints
+        totalPoints = savedState.totalPoints
+        halftimeReached = savedState.halftimeReached
+        gameStarted = true
+
+        return true
+    }
+
+    /// Checks if there's a saved game available (and not stale)
+    static func hasSavedGame() -> Bool {
+        guard let data = UserDefaults.standard.data(forKey: savedGameKey),
+              let savedState = try? JSONDecoder().decode(SavedGameState.self, from: data) else {
+            return false
+        }
+
+        // Check if stale
+        let hoursSinceLastSave = Date().timeIntervalSince(savedState.timestamp) / 3600
+        return hoursSinceLastSave <= 24
+    }
+
+    /// Clears saved game state
+    func clearSavedState() {
+        UserDefaults.standard.removeObject(forKey: Self.savedGameKey)
     }
 }
