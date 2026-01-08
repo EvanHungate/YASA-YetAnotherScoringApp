@@ -11,10 +11,11 @@ struct SetupView: View {
     @ObservedObject var gameState: GameState
 
     var body: some View {
-        VStack(spacing: 8) {
-            Text("Setup")
-                .font(.title3)
-                .fontWeight(.semibold)
+        ScrollView {
+            VStack(spacing: 8) {
+                Text("Setup")
+                    .font(.title3)
+                    .fontWeight(.semibold)
 
             // Team Names - compact
             HStack {
@@ -93,8 +94,9 @@ struct SetupView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            }
+            .padding()
         }
-        .padding()
     }
 }
 
