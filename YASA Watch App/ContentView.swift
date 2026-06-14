@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var gameState = GameState()
+    @EnvironmentObject var gameState: GameState
     @State private var showResumeAlert = false
 
     var body: some View {
