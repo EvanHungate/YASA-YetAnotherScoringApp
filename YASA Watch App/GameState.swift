@@ -332,6 +332,26 @@ class GameState: ObservableObject {
         clearSavedState()
     }
 
+    /// Builds an immutable snapshot of the finished game for display/export.
+    func makeSummary() -> GameSummary {
+        let winner: String
+        if winningTeam == "a" {
+            winner = teamAName
+        } else if winningTeam == "b" {
+            winner = teamBName
+        } else {
+            winner = scoreA >= scoreB ? teamAName : teamBName  // fallback if winningTeam unset
+        }
+        return GameSummary(
+            teamAName: teamAName, teamBName: teamBName,
+            scoreA: scoreA, scoreB: scoreB,
+            breaksA: breaksA, breaksB: breaksB,
+            totalPoints: totalPoints,
+            winnerName: winner,
+            date: Date()
+        )
+    }
+
     // MARK: - Persistence Functions
 
     private static let savedGameKey = "savedGameState"

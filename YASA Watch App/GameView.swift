@@ -157,15 +157,9 @@ struct GameView: View {
         } message: {
             Text("8 points reached. Switching sides.")
         }
-        .alert("Game Over!", isPresented: $gameState.showWinnerModal) {
-            Button("New Game") {
-                gameState.resetGame()
-            }
-        } message: {
-            let winnerName = gameState.winningTeam == "a" ? gameState.teamAName : gameState.teamBName
-            let winnerScore = gameState.winningTeam == "a" ? gameState.scoreA : gameState.scoreB
-            let loserScore = gameState.winningTeam == "a" ? gameState.scoreB : gameState.scoreA
-            Text("\(winnerName) wins \(winnerScore)-\(loserScore)!")
+        .sheet(isPresented: $gameState.showWinnerModal) {
+            FinishView(gameState: gameState)
+                .interactiveDismissDisabled(true)
         }
     }
 }

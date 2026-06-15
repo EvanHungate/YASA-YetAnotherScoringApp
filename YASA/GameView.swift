@@ -98,14 +98,10 @@ struct GameView: View {
         } message: {
             Text("Score: \(gameState.scoreA) - \(gameState.scoreB)")
         }
-        // Winner Modal
-        .alert("Game Over!", isPresented: $gameState.showWinnerModal) {
-            Button("New Game") {
-                gameState.resetGame()
-            }
-        } message: {
-            let winnerName = gameState.winningTeam == "a" ? gameState.teamAName : gameState.teamBName
-            Text("\(winnerName) wins!\nFinal: \(gameState.scoreA) - \(gameState.scoreB)")
+        // Finish screen
+        .sheet(isPresented: $gameState.showWinnerModal) {
+            FinishView(gameState: gameState)
+                .interactiveDismissDisabled(true)
         }
     }
 }

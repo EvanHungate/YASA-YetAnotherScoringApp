@@ -8,6 +8,7 @@
 import Foundation
 import WatchConnectivity
 import Combine
+import Photos
 
 class PhoneConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     static let shared = PhoneConnectivityManager()
@@ -16,6 +17,11 @@ class PhoneConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     @Published var isActivated = false
     @Published var isPaired = false
     @Published var isWatchAppInstalled = false
+
+    /// Most recent time a scorecard was saved to Photos (drives status UI).
+    @Published var lastSavedDate: Date?
+    /// Most recent receive/save error (drives status UI).
+    @Published var lastError: String?
 
     weak var gameState: GameState?
     private var lastSyncedTimestamp: Date?
@@ -127,6 +133,50 @@ class PhoneConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String : Any] = [:]) {
         DispatchQueue.main.async {
             self.handleIncomingMessage(userInfo)
+        }
+    }
+
+    func session(_ session: WCSession, didReceive file: WCSessionFile) {
+        // The system deletes file.fileURL once this method returns, so copy it out synchronously.
+        let dest = FileManager.default.temporaryDirectory
+            .appendingPathComponent("incoming-\(UUID().uuidString).png")
+        do {
+            try FileManager.default.copyItem(at: file.fileURL, to: dest)
+        } catch {
+            DispatchQueue.main.async { self.lastError = "Receive failed: \(error.localizedDescription)" }
+            return
+        }
+        saveScorecardToPhotos(dest)
+    }
+
+    /// Saves a locally-rendered scorecard image to Photos (used by the in-app finish screen).
+    func saveScorecard(imageFileURL url: URL) {
+        saveScorecardToPhotos(url)
+    }
+
+    // Requires INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription on the iOS "YASA" target
+    // (Debug + Release, set in project.pbxproj); otherwise requestAuthorization returns
+    // .denied and the system permission prompt never appears.
+    private func saveScorecardToPhotos(_ url: URL) {
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { [weak self] authStatus in
+            guard authStatus == .authorized || authStatus == .limited else {
+                DispatchQueue.main.async { self?.lastError = "Photos permission denied" }
+                try? FileManager.default.removeItem(at: url)
+                return
+            }
+            PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: url)
+            } completionHandler: { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        self?.lastSavedDate = Date()
+                        self?.lastError = nil
+                    } else {
+                        self?.lastError = error?.localizedDescription ?? "Save failed"
+                    }
+                }
+                try? FileManager.default.removeItem(at: url)
+            }
         }
     }
 

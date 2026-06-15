@@ -75,6 +75,18 @@ class WatchConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
         lastSyncedTimestamp = Date()
     }
 
+    /// Queues the rendered scorecard PNG for background transfer to the iPhone,
+    /// which saves it to Photos. Works whether or not the iPhone is currently reachable.
+    func sendScorecard(fileURL: URL) {
+        guard WCSession.isSupported() else { return }
+        guard WCSession.default.activationState == .activated else {
+            print("[WatchConnectivity] Session not activated; cannot send scorecard")
+            return
+        }
+        WCSession.default.transferFile(fileURL, metadata: ["type": "scorecard"])
+        print("[WatchConnectivity] Queued scorecard file for iPhone")
+    }
+
     // MARK: - WCSessionDelegate
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
