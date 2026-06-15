@@ -1,8 +1,8 @@
 //
 //  GameState.swift
-//  YASA Watch App
+//  YASA
 //
-//  Game state management for Ultimate Frisbee scorekeeper
+//  Game state management for Ultimate Frisbee scorekeeper (iOS)
 //
 
 import SwiftUI
@@ -90,6 +90,12 @@ class GameState: ObservableObject {
 
     // History for undo
     private var history: [GameStateSnapshot] = []
+    
+    // MARK: - Initialization
+    
+    init() {
+        loadTeamNames()
+    }
 
     // MARK: - Setup Functions
 
@@ -108,6 +114,9 @@ class GameState: ObservableObject {
 
     /// Starts a new game with the configured settings
     func startGame() {
+        // Save team names for future games
+        saveTeamNames()
+        
         // Build rotation cycle
         rotationCycle = buildRotation(startRatio: rotationStart)
 
@@ -132,8 +141,8 @@ class GameState: ObservableObject {
         // Save initial game state
         saveState()
 
-        // Sync to iPhone
-        WatchConnectivityManager.shared.sendGameState()
+        // Sync to Watch
+        PhoneConnectivityManager.shared.sendGameState()
     }
 
     // MARK: - Game Logic Functions
@@ -171,8 +180,7 @@ class GameState: ObservableObject {
         if !halftimeReached && (scoreA == 8 || scoreB == 8) {
             halftimeReached = true
             showHalftimeModal = true
-            // Sync to iPhone
-            WatchConnectivityManager.shared.sendGameState()
+            PhoneConnectivityManager.shared.sendGameState()
             return  // Don't check for win yet, let user acknowledge halftime first
         }
 
@@ -181,40 +189,31 @@ class GameState: ObservableObject {
         if currentScore >= targetPoints {
             winningTeam = team
             showWinnerModal = true
-            // Clear saved state when game ends
             clearSavedState()
-            // Sync to iPhone
-            WatchConnectivityManager.shared.sendGameState()
+            PhoneConnectivityManager.shared.sendGameState()
         } else {
-            // Save state after each score (if game isn't over)
             saveState()
-            // Sync to iPhone
-            WatchConnectivityManager.shared.sendGameState()
+            PhoneConnectivityManager.shared.sendGameState()
         }
     }
 
     /// Continues from halftime
     func continueFromHalftime() {
         showHalftimeModal = false
-        // Switch pulling team to opposite of initial puller
         pullingTeam = initialPuller == "a" ? "b" : "a"
 
-        // Check for win after halftime
         if scoreA >= targetPoints {
             winningTeam = "a"
             showWinnerModal = true
             clearSavedState()
-            WatchConnectivityManager.shared.sendGameState()
         } else if scoreB >= targetPoints {
             winningTeam = "b"
             showWinnerModal = true
             clearSavedState()
-            WatchConnectivityManager.shared.sendGameState()
         } else {
-            // Save state after halftime
             saveState()
-            WatchConnectivityManager.shared.sendGameState()
         }
+        PhoneConnectivityManager.shared.sendGameState()
     }
 
     /// Advances the line cursors based on players used
@@ -234,13 +233,11 @@ class GameState: ObservableObject {
         let label = rotationCycle[rotationIndex]
         let needs = ratioNeeds(label: label)
 
-        // Get Open players
         var openLine: [Int] = []
         for i in 0..<min(needs.o, openCount) {
             openLine.append(((openCursor + i) % openCount) + 1)
         }
 
-        // Get FMP players
         var fmpLine: [Int] = []
         for i in 0..<min(needs.f, fmpCount) {
             fmpLine.append(((fmpCursor + i) % fmpCount) + 1)
@@ -262,7 +259,6 @@ class GameState: ObservableObject {
 
     // MARK: - History Functions
 
-    /// Saves the current state to history
     private func saveHistory() {
         let snapshot = GameStateSnapshot(
             scoreA: scoreA,
@@ -279,7 +275,6 @@ class GameState: ObservableObject {
         history.append(snapshot)
     }
 
-    /// Undoes the last action
     func undo() {
         guard let last = history.popLast() else { return }
 
@@ -294,23 +289,19 @@ class GameState: ObservableObject {
         openCursor = last.openCursor
         fmpCursor = last.fmpCursor
 
-        // Clear any modals
         showHalftimeModal = false
         showWinnerModal = false
         winningTeam = ""
 
-        // Sync to iPhone
-        WatchConnectivityManager.shared.sendGameState()
+        PhoneConnectivityManager.shared.sendGameState()
     }
 
-    /// Returns true if undo is available
     func canUndo() -> Bool {
         return !history.isEmpty
     }
 
     // MARK: - Reset Function
 
-    /// Resets the game back to setup
     func resetGame() {
         gameStarted = false
         scoreA = 0
@@ -328,15 +319,32 @@ class GameState: ObservableObject {
         showWinnerModal = false
         winningTeam = ""
 
-        // Clear saved state
         clearSavedState()
     }
 
     // MARK: - Persistence Functions
 
     private static let savedGameKey = "savedGameState"
+    private static let teamNamesKey = "teamNames"
+    
+    /// Save team names separately for reuse across games
+    func saveTeamNames() {
+        let names = ["teamA": teamAName, "teamB": teamBName]
+        UserDefaults.standard.set(names, forKey: Self.teamNamesKey)
+    }
+    
+    /// Load previously used team names
+    func loadTeamNames() {
+        if let names = UserDefaults.standard.dictionary(forKey: Self.teamNamesKey) as? [String: String] {
+            if let teamA = names["teamA"], !teamA.isEmpty {
+                teamAName = teamA
+            }
+            if let teamB = names["teamB"], !teamB.isEmpty {
+                teamBName = teamB
+            }
+        }
+    }
 
-    /// Saves the current game state to UserDefaults
     func saveState() {
         guard gameStarted else { return }
 
@@ -368,22 +376,18 @@ class GameState: ObservableObject {
         }
     }
 
-    /// Loads saved game state if available and not stale
-    /// Returns true if state was restored, false otherwise
     func loadSavedState() -> Bool {
         guard let data = UserDefaults.standard.data(forKey: Self.savedGameKey),
               let savedState = try? JSONDecoder().decode(SavedGameState.self, from: data) else {
             return false
         }
 
-        // Check if saved state is stale (older than 24 hours)
         let hoursSinceLastSave = Date().timeIntervalSince(savedState.timestamp) / 3600
         if hoursSinceLastSave > 24 {
             clearSavedState()
             return false
         }
 
-        // Restore state
         teamAName = savedState.teamAName
         teamBName = savedState.teamBName
         scoreA = savedState.scoreA
@@ -408,19 +412,16 @@ class GameState: ObservableObject {
         return true
     }
 
-    /// Checks if there's a saved game available (and not stale)
     static func hasSavedGame() -> Bool {
         guard let data = UserDefaults.standard.data(forKey: savedGameKey),
               let savedState = try? JSONDecoder().decode(SavedGameState.self, from: data) else {
             return false
         }
 
-        // Check if stale
         let hoursSinceLastSave = Date().timeIntervalSince(savedState.timestamp) / 3600
         return hoursSinceLastSave <= 24
     }
 
-    /// Clears saved game state
     func clearSavedState() {
         UserDefaults.standard.removeObject(forKey: Self.savedGameKey)
     }
