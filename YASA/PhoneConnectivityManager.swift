@@ -46,7 +46,7 @@ class PhoneConnectivityManager: NSObject, ObservableObject, WCSessionDelegate {
 
     /// Send current game state to Watch
     func sendGameState() {
-        guard let gameState = gameState else {
+        guard gameState != nil else {
             print("[PhoneConnectivity] No game state to send")
             return
         }

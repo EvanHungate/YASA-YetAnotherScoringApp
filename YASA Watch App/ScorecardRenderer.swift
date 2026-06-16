@@ -7,7 +7,8 @@
 
 import SwiftUI
 import WatchKit
-import UIKit
+import ImageIO
+import UniformTypeIdentifiers
 
 @MainActor
 enum ScorecardRenderer {
@@ -16,17 +17,15 @@ enum ScorecardRenderer {
         let card = ScorecardView(summary: summary).frame(width: 360)
         let renderer = ImageRenderer(content: card)
         renderer.scale = WKInterfaceDevice.current().screenScale
-        // Contingency: if a future watchOS toolchain drops UIKit / ImageRenderer.uiImage,
-        // render via `renderer.cgImage` and write it to `url` with CGImageDestination
-        // (ImageIO + UTType.png) instead of the uiImage/pngData path below.
-        guard let image = renderer.uiImage, let data = image.pngData() else { return nil }
+        guard let cgImage = renderer.cgImage else { return nil }
+
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("yasa-scorecard.png")
-        do {
-            try data.write(to: url, options: .atomic)
-            return url
-        } catch {
-            return nil
-        }
+        guard let destination = CGImageDestinationCreateWithURL(
+            url as CFURL, UTType.png.identifier as CFString, 1, nil
+        ) else { return nil }
+        CGImageDestinationAddImage(destination, cgImage, nil)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return url
     }
 }

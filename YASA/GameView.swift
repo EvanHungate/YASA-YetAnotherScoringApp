@@ -7,158 +7,225 @@
 
 import SwiftUI
 
+private let teamPalette: [Color] = [
+    Color(red: 0.30, green: 0.70, blue: 0.65), // teal
+    Color(red: 1.00, green: 0.70, blue: 0.50), // salmon
+    Color(red: 0.40, green: 0.70, blue: 1.00), // sky blue
+    Color(red: 0.70, green: 0.50, blue: 1.00), // soft purple
+    Color(red: 0.60, green: 0.90, blue: 0.40), // lime
+    Color(red: 1.00, green: 0.85, blue: 0.30), // gold
+    Color(red: 1.00, green: 0.45, blue: 0.45), // coral
+    Color(red: 0.60, green: 0.60, blue: 1.00), // periwinkle
+]
+
+private func pickTwoColors() -> (Color, Color) {
+    let shuffled = teamPalette.shuffled()
+    return (shuffled[0], shuffled[1])
+}
+
 struct GameView: View {
     @ObservedObject var gameState: GameState
     @Binding var showControls: Bool
-    @ObservedObject var connectivity = PhoneConnectivityManager.shared
+    @ObservedObject private var connectivity = PhoneConnectivityManager.shared
+
+    @State private var colorA: Color = teamPalette[0]
+    @State private var colorB: Color = teamPalette[1]
+
+    @State private var flashA: Double = 0.18
+    @State private var flashB: Double = 0.18
+    @State private var sweepA: CGFloat = 1
+    @State private var sweepB: CGFloat = 1
+
+    @State private var winScale: CGFloat = 0
+    @State private var winOpacity: Double = 0
+    @State private var winColor: Color = .clear
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 4) {
-                // Connection indicator
+        ZStack {
+            VStack(spacing: 0) {
+                // Header strip
                 HStack {
                     Spacer()
                     Circle()
-                        .fill(connectivity.isReachable ? Color.green : Color.orange)
+                        .fill(connectivity.isReachable ? colorA : Color(white: 0.4))
                         .frame(width: 8, height: 8)
                     Text(connectivity.isReachable ? "Watch" : "Offline")
                         .font(.caption2)
                         .foregroundColor(.gray)
                 }
-                .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color(white: 0.15))
 
-                Text(gameState.currentRatioLabel())
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.green)
-
-                Text("Point \(gameState.totalPoints + 1)")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-
-                if gameState.useLineRolling && !gameState.currentLineDisplay().isEmpty {
-                    Text(gameState.currentLineDisplay())
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding(.top, 2)
-                }
-            }
-            .padding(.vertical, 12)
-
-            // Score Buttons
-            HStack(spacing: 10) {
-                // Team A
-                TeamScoreButton(
-                    teamName: gameState.teamAName,
+                // Team A — top half
+                scoreButton(
+                    team: "a",
+                    name: gameState.teamAName,
                     score: gameState.scoreA,
                     breaks: gameState.breaksA,
                     isPulling: gameState.pullingTeam == "a",
-                    color: .blue
-                ) {
-                    gameState.score(team: "a")
-                }
+                    borderColor: colorA,
+                    flashIntensity: flashA,
+                    sweepOffset: sweepA,
+                    ratioLabel: gameState.currentRatioLabel()
+                )
 
-                // Team B
-                TeamScoreButton(
-                    teamName: gameState.teamBName,
+                // Team B — bottom half
+                scoreButton(
+                    team: "b",
+                    name: gameState.teamBName,
                     score: gameState.scoreB,
                     breaks: gameState.breaksB,
                     isPulling: gameState.pullingTeam == "b",
-                    color: .red
-                ) {
-                    gameState.score(team: "b")
-                }
-            }
-            .padding(.horizontal, 10)
+                    borderColor: colorB,
+                    flashIntensity: flashB,
+                    sweepOffset: sweepB,
+                    ratioLabel: nil
+                )
 
-            // Footer
-            VStack(spacing: 12) {
-                Button(action: {
-                    showControls = true
-                }) {
+                // Controls button
+                Button { showControls = true } label: {
                     Text("Controls")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(Color(white: 0.2))
-                        .cornerRadius(8)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.white.opacity(0.8))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color(white: 0.12))
                 }
             }
-            .padding(.vertical, 20)
+            .background(Color.black)
+
+            Circle()
+                .fill(winColor.opacity(winOpacity))
+                .scaleEffect(winScale)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
         }
-        .background(Color.black)
-        // Halftime Modal
-        .alert("Halftime!", isPresented: $gameState.showHalftimeModal) {
-            Button("Continue") {
-                gameState.continueFromHalftime()
-            }
+        .onAppear {
+            let (a, b) = pickTwoColors()
+            colorA = a; colorB = b
+        }
+        .onChange(of: gameState.scoreA) { _, _ in triggerScoreFlash(isA: true) }
+        .onChange(of: gameState.scoreB) { _, _ in triggerScoreFlash(isA: false) }
+        .onChange(of: gameState.showWinnerModal) { _, showing in
+            if showing { triggerWinFlash() }
+        }
+        .alert("Halftime", isPresented: $gameState.showHalftimeModal) {
+            Button("Continue") { gameState.continueFromHalftime() }
         } message: {
-            Text("Score: \(gameState.scoreA) - \(gameState.scoreB)")
+            Text("8 points reached. Switching sides.")
         }
-        // Finish screen
         .sheet(isPresented: $gameState.showWinnerModal) {
             FinishView(gameState: gameState)
                 .interactiveDismissDisabled(true)
         }
     }
-}
 
-struct TeamScoreButton: View {
-    let teamName: String
-    let score: Int
-    let breaks: Int
-    let isPulling: Bool
-    let color: Color
-    let action: () -> Void
+    // MARK: - Animations
 
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                // Status badge
-                Text(isPulling ? "P" : "R")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(Color(white: 0.25))
-                    .cornerRadius(12)
+    private func triggerScoreFlash(isA: Bool) {
+        withAnimation(.easeOut(duration: 0.12)) {
+            if isA { flashA = 0.6 } else { flashB = 0.6 }
+        }
+        withAnimation(.easeIn(duration: 0.55).delay(0.12)) {
+            if isA { flashA = 0.18 } else { flashB = 0.18 }
+        }
+        if isA { sweepA = 1 } else { sweepB = 1 }
+        withAnimation(.easeOut(duration: 0.5)) {
+            if isA { sweepA = -1 } else { sweepB = -1 }
+        }
+    }
 
-                // Team name
-                Text(teamName)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
+    private func triggerWinFlash() {
+        winColor = gameState.winningTeam == "a" ? colorA : colorB
+        winScale = 0
+        withAnimation(.easeOut(duration: 0.7)) { winScale = 6 }
+        withAnimation(.linear(duration: 0.15)) { winOpacity = 0.55 }
+        withAnimation(.easeIn(duration: 0.5).delay(0.4)) { winOpacity = 0 }
+    }
 
-                // Score
-                Text("\(score)")
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+    // MARK: - Button
 
-                // Breaks
-                if breaks > 0 {
+    @ViewBuilder
+    private func scoreButton(
+        team: String, name: String, score: Int, breaks: Int,
+        isPulling: Bool, borderColor: Color,
+        flashIntensity: Double, sweepOffset: CGFloat,
+        ratioLabel: String?
+    ) -> some View {
+        Button { gameState.score(team: team) } label: {
+            ZStack {
+                // Top-left: team name + ratio (if top button) + breaks
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(name)
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                    if let ratio = ratioLabel {
+                        Text(ratio)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(borderColor)
+                    }
+                    Spacer()
                     Text("\(breaks) break\(breaks == 1 ? "" : "s")")
-                        .font(.caption)
-                        .foregroundColor(.orange)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.white.opacity(0.7))
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.leading, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 18)
+
+                // Top-right: P/R badge
+                Text(isPulling ? "P" : "R")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(borderColor)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(.trailing, 20)
+                    .padding(.top, 18)
+
+                // Center: score
+                Text("\(score)")
+                    .font(.system(size: 90, weight: .bold))
+                    .foregroundColor(.white)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(color.opacity(0.15))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(color.opacity(0.3), lineWidth: 2)
+                ZStack {
+                    LinearGradient(
+                        colors: [.black, borderColor.opacity(flashIntensity)],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
+                    LinearGradient(
+                        colors: [.clear, borderColor.opacity(0.45), .clear],
+                        startPoint: .bottom,
+                        endPoint: .top
+                    )
+                    .offset(y: sweepOffset * 300)
+                    .clipped()
+                }
             )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(borderColor.opacity(0.8), lineWidth: 3)
+            )
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
         }
         .buttonStyle(.plain)
     }
 }
 
 #Preview {
-    GameView(gameState: GameState(), showControls: .constant(false))
+    let gs = GameState()
+    gs.gameStarted = true
+    gs.teamAName = "Hawks"
+    gs.teamBName = "Eagles"
+    gs.scoreA = 7; gs.scoreB = 5
+    gs.breaksA = 2; gs.breaksB = 1
+    gs.rotationCycle = ["O2", "F1", "F2", "O1"]
+    return GameView(gameState: gs, showControls: .constant(false))
 }
