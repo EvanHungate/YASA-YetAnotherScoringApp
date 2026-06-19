@@ -88,9 +88,17 @@ class GameState: ObservableObject {
     @Published var showWinnerModal: Bool = false
     @Published var winningTeam: String = ""
 
+    // Timing (for Finish screen duration)
+    @Published var gameStartDate: Date = Date()
+    @Published var finishedAt: Date?
+
+    // Transient break-celebration triggers (incremented to retrigger the animation view)
+    @Published var breakTriggerA: Int = 0
+    @Published var breakTriggerB: Int = 0
+
     // History for undo
     private var history: [GameStateSnapshot] = []
-    
+
     // MARK: - Initialization
     
     init() {
@@ -135,6 +143,8 @@ class GameState: ObservableObject {
         showHalftimeModal = false
         showWinnerModal = false
         winningTeam = ""
+        gameStartDate = Date()
+        finishedAt = nil
 
         gameStarted = true
 
@@ -164,8 +174,10 @@ class GameState: ObservableObject {
         if team == pullingTeam {
             if team == "a" {
                 breaksA += 1
+                breakTriggerA += 1
             } else {
                 breaksB += 1
+                breakTriggerB += 1
             }
         }
 
@@ -176,8 +188,9 @@ class GameState: ObservableObject {
         // 5. Update pulling team (scoring team pulls next)
         pullingTeam = team
 
-        // 6. Check halftime
-        if !halftimeReached && (scoreA == 8 || scoreB == 8) {
+        // 6. Check halftime (first time either team reaches half of target)
+        let halftimeThreshold = Int(ceil(Double(targetPoints) / 2.0))
+        if !halftimeReached && (scoreA >= halftimeThreshold || scoreB >= halftimeThreshold) {
             halftimeReached = true
             showHalftimeModal = true
             PhoneConnectivityManager.shared.sendGameState()
@@ -188,6 +201,7 @@ class GameState: ObservableObject {
         let currentScore = team == "a" ? scoreA : scoreB
         if currentScore >= targetPoints {
             winningTeam = team
+            finishedAt = Date()
             showWinnerModal = true
             clearSavedState()
             PhoneConnectivityManager.shared.sendGameState()
@@ -195,6 +209,61 @@ class GameState: ObservableObject {
             saveState()
             PhoneConnectivityManager.shared.sendGameState()
         }
+    }
+
+    /// Manually finishes the game (e.g. "Finish Game" in Controls), regardless of score.
+    func finishGame() {
+        winningTeam = scoreA >= scoreB ? "a" : "b"
+        finishedAt = Date()
+        showWinnerModal = true
+        clearSavedState()
+        PhoneConnectivityManager.shared.sendGameState()
+    }
+
+    /// Game duration so far (live while playing, frozen once finished).
+    var elapsedSeconds: Int {
+        let end = finishedAt ?? Date()
+        return max(0, Int(end.timeIntervalSince(gameStartDate)))
+    }
+
+    func formattedDuration() -> String {
+        let total = elapsedSeconds
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
+    // MARK: - Controls overrides
+
+    func adjustScore(team: String, delta: Int) {
+        if team == "a" {
+            scoreA = max(0, scoreA + delta)
+        } else {
+            scoreB = max(0, scoreB + delta)
+        }
+        saveState()
+        PhoneConnectivityManager.shared.sendGameState()
+    }
+
+    func adjustBreaks(team: String, delta: Int) {
+        if team == "a" {
+            breaksA = max(0, breaksA + delta)
+        } else {
+            breaksB = max(0, breaksB + delta)
+        }
+        saveState()
+        PhoneConnectivityManager.shared.sendGameState()
+    }
+
+    func setPullingOverride(team: String) {
+        pullingTeam = team
+        saveState()
+        PhoneConnectivityManager.shared.sendGameState()
+    }
+
+    func setRatioIndex(_ index: Int) {
+        guard index >= 0 && index < rotationCycle.count else { return }
+        rotationIndex = index
+        saveState()
+        PhoneConnectivityManager.shared.sendGameState()
     }
 
     /// Continues from halftime
@@ -244,6 +313,20 @@ class GameState: ObservableObject {
         }
 
         return "O: \(openLine.map(String.init).joined(separator: ",")) | F: \(fmpLine.map(String.init).joined(separator: ","))"
+    }
+
+    /// Suggested Open-line player numbers for the current point.
+    func currentOpenNumbers() -> [Int] {
+        guard useLineRolling && gameStarted && rotationIndex < rotationCycle.count else { return [] }
+        let needs = ratioNeeds(label: rotationCycle[rotationIndex])
+        return (0..<min(needs.o, openCount)).map { ((openCursor + $0) % openCount) + 1 }
+    }
+
+    /// Suggested FMP-line player numbers for the current point.
+    func currentFmpNumbers() -> [Int] {
+        guard useLineRolling && gameStarted && rotationIndex < rotationCycle.count else { return [] }
+        let needs = ratioNeeds(label: rotationCycle[rotationIndex])
+        return (0..<min(needs.f, fmpCount)).map { ((fmpCursor + $0) % fmpCount) + 1 }
     }
 
     /// Returns the current ratio label
@@ -318,6 +401,7 @@ class GameState: ObservableObject {
         showHalftimeModal = false
         showWinnerModal = false
         winningTeam = ""
+        finishedAt = nil
 
         clearSavedState()
     }
