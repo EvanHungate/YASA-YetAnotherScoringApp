@@ -9,96 +9,107 @@ import SwiftUI
 
 struct ControlsView: View {
     @ObservedObject var gameState: GameState
+    @State private var showResetConfirmation = false
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                // Game Info
-                VStack(spacing: 8) {
-                    Text("Game Info")
-                        .font(.headline)
+            VStack(spacing: 12) {
+                Text("Controls")
+                    .font(YASAFont.display(15))
+                    .foregroundColor(.white)
+                    .padding(.top, 2)
 
+                VStack(spacing: 6) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Current Point")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            Text("\(gameState.totalPoints + 1)")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Target Points")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            Text("\(gameState.targetPoints)")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                        }
-                    }
-
-                    Divider()
-
-                    // Current Scores
-                    HStack {
-                        VStack(spacing: 4) {
-                            Text(gameState.teamAName)
-                                .font(.caption)
-                            Text("\(gameState.scoreA)")
-                                .font(.title)
-                                .fontWeight(.bold)
-                            Text("\(gameState.breaksA) breaks")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-
+                        scoreColumn(name: gameState.teamAName, score: gameState.scoreA, breaks: gameState.breaksA)
                         Text(":")
-                            .font(.title)
-                            .foregroundColor(.secondary)
-
-                        VStack(spacing: 4) {
-                            Text(gameState.teamBName)
-                                .font(.caption)
-                            Text("\(gameState.scoreB)")
-                                .font(.title)
-                                .fontWeight(.bold)
-                            Text("\(gameState.breaksB) breaks")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(YASAColor.textMuted)
+                        scoreColumn(name: gameState.teamBName, score: gameState.scoreB, breaks: gameState.breaksB)
                     }
                 }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 6)
+                .background(YASAColor.cardFill)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                Divider()
+                Rectangle().fill(YASAColor.divider).frame(height: 1)
 
-                // Control Buttons
-                VStack(spacing: 12) {
-                    Button(action: {
+                VStack(spacing: 8) {
+                    Button {
                         gameState.undo()
-                    }) {
-                        Label("Undo Last Point", systemImage: "arrow.uturn.backward")
+                    } label: {
+                        Text("↺ Undo Point")
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .foregroundColor(gameState.canUndo() ? .white : YASAColor.disabled)
                             .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(ChunkyCapsuleButtonStyle(fill: Color(white: 0.114), lip: .black))
                     .disabled(!gameState.canUndo())
 
-                    Button(action: {
-                        gameState.resetGame()
-                    }) {
-                        Label("Reset Game", systemImage: "arrow.clockwise")
+                    Button {
+                        gameState.finishGame()
+                    } label: {
+                        Text("Finish Game")
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.orange)
+                    .buttonStyle(ChunkyCapsuleButtonStyle(fill: YASAColor.primary, lip: YASAColor.primaryLip))
+
+                    Button {
+                        showResetConfirmation = true
+                    } label: {
+                        Text("Reset Game")
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 9)
+                    }
+                    .buttonStyle(ChunkyCapsuleButtonStyle(fill: YASAColor.teamB, lip: YASAColor.teamBLip))
                 }
             }
-            .padding()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
         }
+        .background(YASAColor.screenBlack)
+        .alert("Reset Game?", isPresented: $showResetConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
+                gameState.resetGame()
+            }
+        } message: {
+            Text("All progress will be lost.")
+        }
+    }
+
+    private func scoreColumn(name: String, score: Int, breaks: Int) -> some View {
+        VStack(spacing: 2) {
+            Text(name)
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundColor(YASAColor.textDim)
+                .lineLimit(1)
+            Text("\(score)")
+                .font(YASAFont.display(26))
+                .foregroundColor(.white)
+            Text("\(breaks) brk")
+                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .foregroundColor(YASAColor.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// Flat (no-lip) chip button used for the Watch ratio/segment chips.
+struct FlatChipButtonStyle: ButtonStyle {
+    var fill: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(RoundedRectangle(cornerRadius: 9).fill(fill))
+            .offset(y: configuration.isPressed ? 2 : 0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

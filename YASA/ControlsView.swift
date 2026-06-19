@@ -2,7 +2,7 @@
 //  ControlsView.swift
 //  YASA
 //
-//  Controls and information screen
+//  Controls / settings sheet — live overrides + game actions
 //
 
 import SwiftUI
@@ -14,190 +14,141 @@ struct ControlsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                // Header
+            VStack(alignment: .leading, spacing: 22) {
                 HStack {
-                    Button(action: {
-                        showControls = false
-                    }) {
-                        Text("← Back")
-                            .foregroundColor(Color(red: 0.3, green: 0.7, blue: 0.65))
-                            .font(.body)
-                            .fontWeight(.semibold)
+                    Button { showControls = false } label: {
+                        Text("‹ Back")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundColor(YASAColor.primary)
                     }
-
                     Spacer()
-
                     Text("Controls")
-                        .font(.title)
-                        .fontWeight(.bold)
+                        .font(YASAFont.display(24))
                         .foregroundColor(.white)
-
                     Spacer()
-
-                    // Spacer for balance
-                    Text("← Back")
-                        .foregroundColor(.clear)
-                        .font(.body)
-                        .fontWeight(.semibold)
+                    Text("Back").font(.system(size: 15, weight: .bold, design: .rounded)).foregroundColor(.clear)
                 }
-                .padding(.horizontal)
-                .padding(.top, 20)
 
-                // Game Info
-                VStack(spacing: 0) {
-                    InfoRow(label: "Score", value: "\(gameState.scoreA) - \(gameState.scoreB)")
-                    InfoRow(label: "Breaks", value: "\(gameState.breaksA) - \(gameState.breaksB)")
-                    InfoRow(label: "Current Ratio", value: gameState.currentRatioLabel())
-                    InfoRow(label: "Pulling Team", value: gameState.pullingTeam == "a" ? gameState.teamAName : gameState.teamBName)
-
-                    if gameState.useLineRolling {
-                        InfoRow(label: "Current Line", value: gameState.currentLineDisplay())
+                // ADJUST
+                VStack(alignment: .leading, spacing: 11) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("ADJUST").font(.system(size: 12, weight: .bold, design: .rounded)).tracking(1.4).foregroundColor(YASAColor.textMuted)
+                        Text("overrides the live game").font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundColor(YASAColor.textFaint)
                     }
-
-                    InfoRow(label: "Target", value: "\(gameState.targetPoints) points")
-
-                    if gameState.halftimeReached {
-                        InfoRow(label: "Status", value: "Second Half", valueColor: Color(red: 1.0, green: 0.7, blue: 0.5))
+                    VStack(spacing: 0) {
+                        subheader("SCORE")
+                        adjustRow(dot: YASAColor.teamA, name: gameState.teamAName, value: gameState.scoreA,
+                                  dec: { gameState.adjustScore(team: "a", delta: -1) },
+                                  inc: { gameState.adjustScore(team: "a", delta: 1) })
+                        adjustRow(dot: YASAColor.teamB, name: gameState.teamBName, value: gameState.scoreB,
+                                  dec: { gameState.adjustScore(team: "b", delta: -1) },
+                                  inc: { gameState.adjustScore(team: "b", delta: 1) }, divider: true)
+                        subheader("BREAKS")
+                        adjustRow(dot: YASAColor.teamA, name: gameState.teamAName, value: gameState.breaksA,
+                                  dec: { gameState.adjustBreaks(team: "a", delta: -1) },
+                                  inc: { gameState.adjustBreaks(team: "a", delta: 1) })
+                        adjustRow(dot: YASAColor.teamB, name: gameState.teamBName, value: gameState.breaksB,
+                                  dec: { gameState.adjustBreaks(team: "b", delta: -1) },
+                                  inc: { gameState.adjustBreaks(team: "b", delta: 1) })
                     }
+                    .background(YASAColor.cardFill)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(white: 0.1),
-                            Color(red: 0.3, green: 0.7, blue: 0.65).opacity(0.15)
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color(red: 0.3, green: 0.7, blue: 0.65).opacity(0.3), lineWidth: 1)
-                )
-                .padding(.horizontal)
 
-                // Action Buttons
-                VStack(spacing: 12) {
-                    Button(action: {
-                        gameState.undo()
-                    }) {
-                        Text("Undo Last Score")
-                            .font(.headline)
-                            .foregroundColor(gameState.canUndo() ? .white : .gray)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(white: 0.2),
-                                        Color(white: 0.15)
-                                    ]),
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(gameState.canUndo() ? Color(red: 0.3, green: 0.7, blue: 0.65).opacity(0.4) : Color(white: 0.2), lineWidth: 1.5)
-                            )
-                    }
-                    .disabled(!gameState.canUndo())
-
-                    Button(action: {
-                        showResetConfirmation = true
-                    }) {
-                        Text("Reset Game")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(red: 1.0, green: 0.5, blue: 0.4).opacity(0.6),
-                                        Color(red: 1.0, green: 0.5, blue: 0.4).opacity(0.8)
-                                    ]),
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color(red: 1.0, green: 0.7, blue: 0.5).opacity(0.5), lineWidth: 1.5)
-                            )
-                    }
-                }
-                .padding(.horizontal)
-
-                // Rotation Cycle
-                VStack(spacing: 12) {
-                    Text("Rotation Cycle")
-                        .font(.body)
-                        .foregroundColor(.gray)
-
-                    HStack(spacing: 8) {
-                        ForEach(Array(gameState.rotationCycle.enumerated()), id: \.offset) { index, ratio in
-                            Text(ratio)
-                                .font(.body)
-                                .fontWeight(.semibold)
-                                .foregroundColor(index == gameState.rotationIndex ? .white : .gray)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(
-                                    index == gameState.rotationIndex 
-                                    ? LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color(red: 0.3, green: 0.7, blue: 0.65).opacity(0.8),
-                                            Color(red: 0.3, green: 0.7, blue: 0.65)
-                                        ]),
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                    : LinearGradient(
-                                        gradient: Gradient(colors: [Color(white: 0.2), Color(white: 0.2)]),
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(
-                                            index == gameState.rotationIndex 
-                                            ? Color(red: 0.3, green: 0.7, blue: 0.65).opacity(0.6)
-                                            : Color.clear,
-                                            lineWidth: 1.5
-                                        )
-                                )
+                // PULLING NOW
+                VStack(alignment: .leading, spacing: 11) {
+                    Text("PULLING NOW").font(.system(size: 12, weight: .bold, design: .rounded)).tracking(1.4).foregroundColor(YASAColor.textMuted)
+                    HStack(spacing: 11) {
+                        pullSegment(title: gameState.teamAName, isSelected: gameState.pullingTeam == "a",
+                                    fill: YASAColor.teamA, lip: YASAColor.teamALip) {
+                            gameState.setPullingOverride(team: "a")
+                        }
+                        pullSegment(title: gameState.teamBName, isSelected: gameState.pullingTeam == "b",
+                                    fill: YASAColor.teamB, lip: YASAColor.teamBLip) {
+                            gameState.setPullingOverride(team: "b")
                         }
                     }
                 }
-                .padding()
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(white: 0.1),
-                            Color(red: 1.0, green: 0.7, blue: 0.5).opacity(0.12)
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color(red: 1.0, green: 0.7, blue: 0.5).opacity(0.25), lineWidth: 1)
-                )
-                .padding(.horizontal)
+
+                // RATIO
+                VStack(alignment: .leading, spacing: 11) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("RATIO").font(.system(size: 12, weight: .bold, design: .rounded)).tracking(1.4).foregroundColor(YASAColor.textMuted)
+                        Text("tap to set current").font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundColor(YASAColor.textFaint)
+                    }
+                    HStack(spacing: 9) {
+                        ForEach(Array(gameState.rotationCycle.enumerated()), id: \.offset) { index, label in
+                            Button { gameState.setRatioIndex(index) } label: {
+                                Text(label)
+                                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                                    .foregroundColor(index == gameState.rotationIndex ? .black : Color(white: 0.53))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                            }
+                            .buttonStyle(FlatChipButtonStyle(
+                                fill: index == gameState.rotationIndex ? YASAColor.teamA : YASAColor.inactiveSegment
+                            ))
+                        }
+                    }
+                }
+
+                // ROSTER
+                if gameState.useLineRolling {
+                    VStack(alignment: .leading, spacing: 11) {
+                        Text("ROSTER").font(.system(size: 12, weight: .bold, design: .rounded)).tracking(1.4).foregroundColor(YASAColor.textMuted)
+                        VStack(spacing: 0) {
+                            rosterRow(title: "Open players", value: $gameState.openCount, divider: true)
+                            rosterRow(title: "FMP players", value: $gameState.fmpCount, divider: false)
+                        }
+                        .background(YASAColor.cardFill)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                }
+
+                // Actions
+                VStack(spacing: 13) {
+                    Button {
+                        gameState.undo()
+                    } label: {
+                        Text("↺  Undo Last Point")
+                            .font(.system(size: 17, weight: .heavy, design: .rounded))
+                            .foregroundColor(gameState.canUndo() ? .white : YASAColor.disabled)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                    }
+                    .buttonStyle(ChunkyCapsuleButtonStyle(fill: Color(white: 0.114), lip: .black, radius: 15))
+                    .disabled(!gameState.canUndo())
+
+                    Button {
+                        gameState.finishGame()
+                    } label: {
+                        Text("Finish Game")
+                            .font(.system(size: 17, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                    }
+                    .buttonStyle(ChunkyCapsuleButtonStyle(fill: YASAColor.primary, lip: YASAColor.primaryLip, radius: 15))
+
+                    Button {
+                        showResetConfirmation = true
+                    } label: {
+                        Text("Reset Game")
+                            .font(.system(size: 17, weight: .heavy, design: .rounded))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                    }
+                    .buttonStyle(ChunkyCapsuleButtonStyle(fill: YASAColor.teamB, lip: YASAColor.teamBLip, radius: 15))
+                }
+                .padding(.top, 2)
 
                 Spacer(minLength: 40)
             }
+            .padding(.horizontal, 22)
+            .padding(.top, 20)
         }
-        .background(Color.black)
+        .background(YASAColor.surfaceBlack)
         .alert("Reset Game?", isPresented: $showResetConfirmation) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
@@ -208,32 +159,107 @@ struct ControlsView: View {
             Text("All progress will be lost.")
         }
     }
+
+    // MARK: - Rows
+
+    private func subheader(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .bold, design: .rounded))
+            .tracking(1.8)
+            .foregroundColor(YASAColor.textFaint)
+            .padding(.horizontal, 16)
+            .padding(.top, 13)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func adjustRow(dot: Color, name: String, value: Int, dec: @escaping () -> Void, inc: @escaping () -> Void, divider: Bool = false) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                HStack(spacing: 10) {
+                    Circle().fill(dot).frame(width: 11, height: 11)
+                    Text(name)
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                }
+                Spacer()
+                HStack(spacing: 13) {
+                    Button(action: dec) {
+                        Text("–").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundColor(.white)
+                            .frame(width: 34, height: 34)
+                    }.buttonStyle(CircleControlButtonStyle())
+                    Text("\(value)")
+                        .font(.system(size: 19, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(minWidth: 24)
+                    Button(action: inc) {
+                        Text("+").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundColor(.white)
+                            .frame(width: 34, height: 34)
+                    }.buttonStyle(CircleControlButtonStyle())
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+            if divider {
+                Rectangle().fill(YASAColor.divider).frame(height: 1).padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private func rosterRow(title: String, value: Binding<Int>, divider: Bool) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(title).font(.system(size: 15, weight: .heavy, design: .rounded)).foregroundColor(.white)
+                Spacer()
+                HStack(spacing: 13) {
+                    Button { if value.wrappedValue > 1 { value.wrappedValue -= 1 } } label: {
+                        Text("–").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundColor(.white)
+                            .frame(width: 34, height: 34)
+                    }.buttonStyle(CircleControlButtonStyle())
+                    Text("\(value.wrappedValue)")
+                        .font(.system(size: 19, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(minWidth: 24)
+                    Button { value.wrappedValue += 1 } label: {
+                        Text("+").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundColor(.white)
+                            .frame(width: 34, height: 34)
+                    }.buttonStyle(CircleControlButtonStyle())
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            if divider {
+                Rectangle().fill(YASAColor.divider).frame(height: 1).padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private func pullSegment(title: String, isSelected: Bool, fill: Color, lip: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .foregroundColor(isSelected ? .black : YASAColor.textDim)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+        }
+        .buttonStyle(ChunkyCapsuleButtonStyle(
+            fill: isSelected ? fill : YASAColor.inactiveSegment,
+            lip: isSelected ? lip : .black,
+            radius: 13
+        ))
+    }
 }
 
-struct InfoRow: View {
-    let label: String
-    let value: String
-    var valueColor: Color = .white
-
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.body)
-                .foregroundColor(.gray)
-            Spacer()
-            Text(value)
-                .font(.body)
-                .foregroundColor(valueColor)
-                .fontWeight(.semibold)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .overlay(
-            Rectangle()
-                .fill(Color(white: 0.2))
-                .frame(height: 1),
-            alignment: .bottom
-        )
+/// Flat (no-lip) chip button used for the ratio rotation chips.
+struct FlatChipButtonStyle: ButtonStyle {
+    var fill: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(RoundedRectangle(cornerRadius: 11).fill(fill))
+            .offset(y: configuration.isPressed ? 2 : 0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

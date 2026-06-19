@@ -7,113 +7,80 @@
 
 import SwiftUI
 
-private let teamPalette: [Color] = [
-    Color(red: 0.30, green: 0.70, blue: 0.65), // teal
-    Color(red: 1.00, green: 0.70, blue: 0.50), // salmon
-    Color(red: 0.40, green: 0.70, blue: 1.00), // sky blue
-    Color(red: 0.70, green: 0.50, blue: 1.00), // soft purple
-    Color(red: 0.60, green: 0.90, blue: 0.40), // lime
-    Color(red: 1.00, green: 0.85, blue: 0.30), // gold
-    Color(red: 1.00, green: 0.45, blue: 0.45), // coral
-    Color(red: 0.60, green: 0.60, blue: 1.00), // periwinkle
-]
-
-private func pickTwoColors() -> (Color, Color) {
-    let shuffled = teamPalette.shuffled()
-    return (shuffled[0], shuffled[1])
-}
-
 struct GameView: View {
     @ObservedObject var gameState: GameState
     @Binding var showControls: Bool
     @ObservedObject private var connectivity = PhoneConnectivityManager.shared
 
-    @State private var colorA: Color = teamPalette[0]
-    @State private var colorB: Color = teamPalette[1]
-
-    @State private var flashA: Double = 0.18
-    @State private var flashB: Double = 0.18
-    @State private var sweepA: CGFloat = 1
-    @State private var sweepB: CGFloat = 1
-
-    @State private var winScale: CGFloat = 0
-    @State private var winOpacity: Double = 0
-    @State private var winColor: Color = .clear
-
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                // Header strip
-                HStack {
+                // Status row
+                HStack(spacing: 6) {
                     Spacer()
                     Circle()
-                        .fill(connectivity.isReachable ? colorA : Color(white: 0.4))
-                        .frame(width: 8, height: 8)
-                    Text(connectivity.isReachable ? "Watch" : "Offline")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+                        .fill(connectivity.isReachable ? YASAColor.connectionDot : Color(white: 0.4))
+                        .frame(width: 7, height: 7)
+                        .shadow(color: connectivity.isReachable ? YASAColor.connectionDot.opacity(0.8) : .clear, radius: 4)
+                    Text(connectivity.isReachable ? "WATCH" : "OFFLINE")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color(white: 0.81))
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Color(white: 0.15))
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
 
-                // Team A — top half
-                scoreButton(
-                    team: "a",
-                    name: gameState.teamAName,
-                    score: gameState.scoreA,
-                    breaks: gameState.breaksA,
-                    isPulling: gameState.pullingTeam == "a",
-                    borderColor: colorA,
-                    flashIntensity: flashA,
-                    sweepOffset: sweepA,
-                    ratioLabel: gameState.currentRatioLabel()
-                )
+                teamBlock(team: "a", name: gameState.teamAName, score: gameState.scoreA,
+                          breaks: gameState.breaksA, isPulling: gameState.pullingTeam == "a",
+                          fill: YASAColor.teamA, lip: YASAColor.teamALip,
+                          breakTrigger: gameState.breakTriggerA,
+                          showLineRoll: true)
+                    .padding(.horizontal, 9)
+                    .padding(.top, 6)
 
-                // Team B — bottom half
-                scoreButton(
-                    team: "b",
-                    name: gameState.teamBName,
-                    score: gameState.scoreB,
-                    breaks: gameState.breaksB,
-                    isPulling: gameState.pullingTeam == "b",
-                    borderColor: colorB,
-                    flashIntensity: flashB,
-                    sweepOffset: sweepB,
-                    ratioLabel: nil
-                )
+                // Middle strip: ratio · menu · total points
+                HStack {
+                    RatioRollText(label: gameState.currentRatioLabel(), size: 26, color: .white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Controls button
-                Button { showControls = true } label: {
-                    Text("Controls")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(.white.opacity(0.8))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color(white: 0.12))
+                    Button { showControls = true } label: {
+                        VStack(spacing: 4) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                Capsule().fill(Color.white).frame(width: 18, height: 2.5)
+                            }
+                        }
+                        .frame(width: 50, height: 50)
+                        .background(Circle().fill(YASAColor.cardFill))
+                        .overlay(Circle().stroke(Color(white: 0.2), lineWidth: 2))
+                        .shadow(color: .black.opacity(0.45), radius: 12, y: 4)
+                    }
+                    .buttonStyle(.plain)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(gameState.totalPoints)")
+                            .font(YASAFont.display(26))
+                            .foregroundColor(.white)
+                        Text("PTS")
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+
+                teamBlock(team: "b", name: gameState.teamBName, score: gameState.scoreB,
+                          breaks: gameState.breaksB, isPulling: gameState.pullingTeam == "b",
+                          fill: YASAColor.teamB, lip: YASAColor.teamBLip,
+                          breakTrigger: gameState.breakTriggerB,
+                          showLineRoll: false)
+                    .padding(.horizontal, 9)
+                    .padding(.bottom, 6)
             }
-            .background(Color.black)
+            .background(YASAColor.screenBlack)
 
-            Circle()
-                .fill(winColor.opacity(winOpacity))
-                .scaleEffect(winScale)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-        }
-        .onAppear {
-            let (a, b) = pickTwoColors()
-            colorA = a; colorB = b
-        }
-        .onChange(of: gameState.scoreA) { _, _ in triggerScoreFlash(isA: true) }
-        .onChange(of: gameState.scoreB) { _, _ in triggerScoreFlash(isA: false) }
-        .onChange(of: gameState.showWinnerModal) { _, showing in
-            if showing { triggerWinFlash() }
-        }
-        .alert("Halftime", isPresented: $gameState.showHalftimeModal) {
-            Button("Continue") { gameState.continueFromHalftime() }
-        } message: {
-            Text("8 points reached. Switching sides.")
+            if gameState.showHalftimeModal {
+                halftimeOverlay
+            }
         }
         .sheet(isPresented: $gameState.showWinnerModal) {
             FinishView(gameState: gameState)
@@ -121,101 +88,167 @@ struct GameView: View {
         }
     }
 
-    // MARK: - Animations
-
-    private func triggerScoreFlash(isA: Bool) {
-        withAnimation(.easeOut(duration: 0.12)) {
-            if isA { flashA = 0.6 } else { flashB = 0.6 }
-        }
-        withAnimation(.easeIn(duration: 0.55).delay(0.12)) {
-            if isA { flashA = 0.18 } else { flashB = 0.18 }
-        }
-        if isA { sweepA = 1 } else { sweepB = 1 }
-        withAnimation(.easeOut(duration: 0.5)) {
-            if isA { sweepA = -1 } else { sweepB = -1 }
-        }
-    }
-
-    private func triggerWinFlash() {
-        winColor = gameState.winningTeam == "a" ? colorA : colorB
-        winScale = 0
-        withAnimation(.easeOut(duration: 0.7)) { winScale = 6 }
-        withAnimation(.linear(duration: 0.15)) { winOpacity = 0.55 }
-        withAnimation(.easeIn(duration: 0.5).delay(0.4)) { winOpacity = 0 }
-    }
-
-    // MARK: - Button
+    // MARK: - Team block
 
     @ViewBuilder
-    private func scoreButton(
+    private func teamBlock(
         team: String, name: String, score: Int, breaks: Int,
-        isPulling: Bool, borderColor: Color,
-        flashIntensity: Double, sweepOffset: CGFloat,
-        ratioLabel: String?
+        isPulling: Bool, fill: Color, lip: Color, breakTrigger: Int, showLineRoll: Bool
     ) -> some View {
-        Button { gameState.score(team: team) } label: {
-            ZStack {
-                // Top-left: team name + ratio (if top button) + breaks
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(name)
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    if let ratio = ratioLabel {
-                        Text(ratio)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(borderColor)
+        Button {
+            gameState.score(team: team)
+        } label: {
+            GeometryReader { _ in
+                ZStack {
+                    VStack {
+                        HStack(alignment: .top) {
+                            Text(name)
+                                .font(.system(size: 19, weight: .heavy, design: .rounded))
+                                .foregroundColor(.black)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                            Spacer()
+                            Text(isPulling ? "PULLING" : "RECEIVING")
+                                .font(.system(size: 14, weight: .heavy, design: .rounded))
+                                .tracking(0.6)
+                                .foregroundColor(.black)
+                        }
+                        Spacer()
                     }
-                    Spacer()
-                    Text("\(breaks) break\(breaks == 1 ? "" : "s")")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white.opacity(0.7))
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+
+                    ScorePopText(value: score, size: 132, color: .black)
+
+                    VStack {
+                        Spacer()
+                        HStack {
+                            if showLineRoll && gameState.useLineRolling {
+                                VStack(alignment: .center, spacing: 6) {
+                                    lineRow(prefix: "O", numbers: gameState.currentOpenNumbers())
+                                    lineRow(prefix: "F", numbers: gameState.currentFmpNumbers())
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.bottom, 6)
+                            }
+                        }
+                        HStack {
+                            Text("\(breaks) BREAK\(breaks == 1 ? "" : "S")")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .tracking(0.6)
+                                .foregroundColor(.black.opacity(0.62))
+                            Spacer()
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+
+                    BreakCelebrationView(trigger: breakTrigger, big: true)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.leading, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 18)
-
-                // Top-right: P/R badge
-                Text(isPulling ? "P" : "R")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(borderColor)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .padding(.trailing, 20)
-                    .padding(.top, 18)
-
-                // Center: score
-                Text("\(score)")
-                    .font(.system(size: 90, weight: .bold))
-                    .foregroundColor(.white)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(fill)
+            .overlay(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(lip)
+                    .frame(height: 9)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22))
+            .shadow(color: .black.opacity(0.28), radius: 16, y: 7)
+        }
+        .buttonStyle(PressDownButtonStyle())
+    }
+
+    @ViewBuilder
+    private func lineRow(prefix: String, numbers: [Int]) -> some View {
+        if !numbers.isEmpty {
+            HStack(spacing: 9) {
+                Text(prefix)
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .tracking(0.8)
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.black.opacity(0.16))
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                Text(numbers.map(String.init).joined(separator: " "))
+                    .font(.system(size: 19, weight: .heavy, design: .rounded))
+                    .tracking(2.6)
+                    .foregroundColor(.black)
+            }
+        }
+    }
+
+    // MARK: - Halftime overlay
+
+    private var halftimeOverlay: some View {
+        VStack(spacing: 22) {
+            Text("HALFTIME")
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .tracking(5)
+                .foregroundColor(Color(white: 0.48))
+            Text("\(gameState.scoreA) – \(gameState.scoreB)")
+                .font(YASAFont.display(70))
+                .foregroundColor(.white)
+            Text("\(nextPullerName) pulls to start\nthe second half")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .multilineTextAlignment(.center)
+                .foregroundColor(Color(red: 0.604, green: 0.584, blue: 0.549))
+
+            Button {
+                gameState.continueFromHalftime()
+            } label: {
+                Text("Start Second Half")
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 18)
+            }
+            .buttonStyle(ChunkyCapsuleButtonStyle(fill: YASAColor.primary, lip: YASAColor.primaryLip))
+            .shadow(color: YASAColor.primary.opacity(0.3), radius: 16, y: 7)
+            .padding(.top, 6)
+        }
+        .padding(.horizontal, 30)
+        .padding(.vertical, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(YASAColor.surfaceBlack)
+        .transition(.opacity)
+    }
+
+    private var nextPullerName: String {
+        gameState.initialPuller == "a" ? gameState.teamBName : gameState.teamAName
+    }
+}
+
+/// Translates the block down on press to compress its bottom "lip".
+struct PressDownButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .offset(y: configuration.isPressed ? 6 : 0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+/// A pill-shaped chunky button (used for primary actions like "Start Second Half").
+struct ChunkyCapsuleButtonStyle: ButtonStyle {
+    var fill: Color
+    var lip: Color
+    var radius: CGFloat = 16
+    var lipHeight: CGFloat = 6
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
             .background(
                 ZStack {
-                    LinearGradient(
-                        colors: [.black, borderColor.opacity(flashIntensity)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    LinearGradient(
-                        colors: [.clear, borderColor.opacity(0.45), .clear],
-                        startPoint: .bottom,
-                        endPoint: .top
-                    )
-                    .offset(y: sweepOffset * 300)
-                    .clipped()
+                    RoundedRectangle(cornerRadius: radius).fill(lip)
+                    RoundedRectangle(cornerRadius: radius)
+                        .fill(fill)
+                        .padding(.bottom, configuration.isPressed ? 0 : lipHeight)
                 }
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(borderColor.opacity(0.8), lineWidth: 3)
-            )
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-        }
-        .buttonStyle(.plain)
+            .offset(y: configuration.isPressed ? lipHeight : 0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
